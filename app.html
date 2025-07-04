@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Interactive Roadmap</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+
+  <div id="root"></div>
+
+  <!-- React + ReactDOM from CDN -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+  <!-- Babel for JSX support -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- React App Code -->
+  <script type="text/babel">
+    const { useState } = React;
+
+    const TigerAirRoadmap = () => {
+      const [timeline, setTimeline] = useState([]);
+      const [alerts, setAlerts] = useState([]);
+      const [draggedItem, setDraggedItem] = useState(null);
+
+      const initiatives = {
+        foundation: [
+          {
+            id: 'warehouse-org',
+            title: 'Warehouse Organization',
+            description: 'Physical inventory system with logical placement',
+            dependencies: [],
+            enables: ['digital-inventory', 'team-expansion'],
+            risks: 'Without this, technicians waste time searching for parts',
+            benefit: 'Faster job completion, reduced frustration, professional appearance'
+          },
+          {
+            id: 'process-docs',
+            title: 'Process Documentation',
+            description: 'Written procedures for consistent service delivery',
+            dependencies: [],
+            enables: ['training-programs', 'quality-standards'],
+            risks: 'Creating SOPs after digital systems may require rewrites',
+            benefit: 'Consistent quality, easier training, business can operate without owner'
+          },
+          {
+            id: 'digital-inventory',
+            title: 'Digital Inventory System',
+            description: 'Real-time tracking of parts and materials',
+            dependencies: ['warehouse-org'],
+            enables: ['scheduling-system', 'performance-tracking'],
+            risks: 'Implementing before organization creates garbage-in-garbage-out',
+            benefit: 'Accurate stock levels, automatic reordering, job cost tracking'
+          }
+        ],
+        operational: [
+          {
+            id: 'training-programs',
+            title: 'Structured Training Programs',
+            description: 'Standardized onboarding and skill development',
+            dependencies: ['process-docs'],
+            enables: ['team-expansion', 'quality-standards'],
+            risks: 'Without documented processes, training becomes inconsistent',
+            benefit: 'Scalable workforce, consistent service, reduced supervision needs'
+          },
+          {
+            id: 'scheduling-system',
+            title: 'Digital Scheduling System',
+            description: 'Automated appointment management and routing',
+            dependencies: ['digital-inventory'],
+            enables: ['performance-tracking', 'customer-communication'],
+            risks: 'Poor data quality makes scheduling optimization ineffective',
+            benefit: 'Optimized routes, better customer communication, capacity planning'
+          },
+          {
+            id: 'team-expansion',
+            title: 'Team Expansion',
+            description: 'Hiring additional skilled technicians',
+            dependencies: ['warehouse-org', 'training-programs'],
+            enables: ['installation-division', 'geographic-expansion'],
+            risks: 'Expanding without systems creates chaos and quality issues',
+            benefit: 'Increased capacity, geographic coverage, specialization opportunities'
+          }
+        ],
+        optimization: [
+          {
+            id: 'installation-division',
+            title: 'Installation Division',
+            description: 'Dedicated team for new system installations',
+            dependencies: ['team-expansion', 'training-programs'],
+            enables: ['commercial-market', 'service-contracts'],
+            risks: 'Without proven service operations, installations may suffer',
+            benefit: 'Higher-value projects, complete solutions, customer satisfaction'
+          },
+          {
+            id: 'service-contracts',
+            title: 'Service Contract Program',
+            description: 'Recurring maintenance agreements',
+            dependencies: ['installation-division', 'quality-standards'],
+            enables: ['commercial-market', 'predictable-revenue'],
+            risks: 'Poor service quality kills contract renewals',
+            benefit: 'Predictable revenue, customer retention, premium pricing'
+          },
+          {
+            id: 'commercial-market',
+            title: 'Commercial Market Entry',
+            description: 'Business and institutional customers',
+            dependencies: ['service-contracts', 'team-expansion'],
+            enables: ['geographic-expansion'],
+            risks: 'Commercial customers demand higher reliability and accountability',
+            benefit: 'Larger projects, recurring contracts, market diversification'
+          }
+        ]
+      };
+
+      const allItems = [...initiatives.foundation, ...initiatives.operational, ...initiatives.optimization];
+
+      const checkDependencies = (newTimeline) => {
+        const newAlerts = [];
+        const completed = new Set();
+
+        newTimeline.forEach(item => {
+          const unmet = item.dependencies.filter(dep => !completed.has(dep));
+          if (unmet.length) {
+            const names = unmet.map(dep => {
+              const found = allItems.find(i => i.id === dep);
+              return found ? found.title : dep;
+            }).join(', ');
+            newAlerts.push({
+              title: `Missing dependencies for "${item.title}"`,
+              message: `Depends on: ${names}`,
+              consequence: item.risks
+            });
+          }
+          completed.add(item.id);
+        });
+
+        setAlerts(newAlerts);
+      };
+
+      const handleDragStart = (e, item) => {
+        setDraggedItem(item);
+      };
+
+      const handleDrop = () => {
+        if (!draggedItem) return;
+        if (!timeline.find(i => i.id === draggedItem.id)) {
+          const newTimeline = [...timeline, draggedItem];
+          setTimeline(newTimeline);
+          checkDependencies(newTimeline);
+        }
+        setDraggedItem(null);
+      };
+
+      const removeItem = (id) => {
+        const newTimeline = timeline.filter(i => i.id !== id);
+        setTimeline(newTimeline);
+        checkDependencies(newTimeline);
+      };
+
+      const availableItems = allItems.filter(i => !timeline.some(t => t.id === i.id));
+
+      return (
+        <div className="max-w-5xl mx-auto p-6">
+          <h1 className="text-3xl font-bold mb-6 text-center">TigerAir Strategic Roadmap</h1>
+          
+          <div className="mb-6 text-center">
+            <p className="text-gray-600">Drag initiatives from the left to build your implementation timeline on the right.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div>
+              <h2 className="text-xl font-semibold mb-4">Available Initiatives</h2>
+              <div className="space-y-3">
+                {availableItems.map(item => (
+                  <div
+                    key={item.id}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, item)}
+                    className="bg-white border border-gray-200 p-4 rounded-lg shadow-sm hover:shadow-md cursor-move transition-shadow"
+                  >
+                    <h3 className="font-medium text-gray-900">{item.title}</h3>
+                    <p className="text-sm text-gray-600 mt-1">{item.description}</p>
+                    {item.dependencies.length > 0 && (
+                      <p className="text-xs text-orange-600 mt-2">
+                        Depends on: {item.dependencies.map(dep => {
+                          const found = allItems.find(i => i.id === dep);
+                          return found ? found.title : dep;
+                        }).join(', ')}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={handleDrop}
+              className="min-h-[400px] bg-gray-50 border-2 border-dashed border-gray-300 p-4 rounded-lg"
+            >
+              <h2 className="text-xl font-semibold mb-4">Your Implementation Timeline</h2>
+              {timeline.length === 0 && (
+                <div className="text-center py-8">
+                  <p className="text-gray-400 italic">Drag initiatives here to build your roadmap</p>
+                  <p className="text-sm text-gray-400 mt-2">Dependencies will be automatically checked</p>
+                </div>
+              )}
+              <div className="space-y-3">
+                {timeline.map((item, index) => (
+                  <div
+                    key={item.id}
+                    className="bg-white border border-gray-200 p-4 rounded-lg shadow-sm flex justify-between items-start"
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
+                          Step {index + 1}
+                        </span>
+                        <h3 className="font-medium text-gray-900">{item.title}</h3>
+                      </div>
+                      <p className="text-sm text-gray-600">{item.description}</p>
+                      <p className="text-xs text-green-600 mt-1">
+                        <strong>Benefit:</strong> {item.benefit}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => removeItem(item.id)}
+                      className="text-red-500 hover:text-red-700 text-sm font-medium ml-4 px-2 py-1 rounded hover:bg-red-50 transition-colors"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {alerts.length > 0 && (
+            <div className="mt-8 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
+              <h4 className="font-semibold mb-2 text-yellow-800">⚠️ Dependency Issues:</h4>
+              <div className="space-y-2">
+                {alerts.map((alert, i) => (
+                  <div key={i} className="text-sm text-yellow-700">
+                    <strong>{alert.title}</strong>
+                    <p className="mt-1">{alert.message}</p>
+                    <p className="text-xs text-yellow-600 mt-1 italic">Risk: {alert.consequence}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          <div className="mt-8 text-center">
+            <button
+              onClick={() => window.history.back()}
+              className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+            >
+              ← Back to Main Plan
+            </button>
+          </div>
+        </div>
+      );
+    };
+
+    // Wait for DOM to be ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function() {
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<TigerAirRoadmap />);
+      });
+    } else {
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(<TigerAirRoadmap />);
+    }
+  </script>
+</body>
+</html>

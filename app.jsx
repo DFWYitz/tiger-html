@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+const { useState, useEffect } = React;
 import { AlertTriangle, CheckCircle, ArrowRight, GripVertical, Lightbulb } from 'lucide-react';
 
 const TigerAirRoadmap = () => {
@@ -412,4 +412,5 @@ const TigerAirRoadmap = () => {
   );
 };
 
-export default TigerAirRoadmap;
+// Instead of export default ...
+ReactDOM.createRoot(document.getElementById('root')).render(<TigerAirRoadmap />);
